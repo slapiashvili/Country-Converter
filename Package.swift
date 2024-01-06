@@ -1,7 +1,9 @@
 // swift-tools-version: 5.0
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
-import PackageDescription
+import CountryConverter
+import Foundation
+
 
 let package = Package(
     name: "CountryConverter",
@@ -26,3 +28,42 @@ let package = Package(
             dependencies: ["CountryConverter"]),
     ]
 )
+
+
+
+public struct CountryConverter {
+    
+    private static let apiUrl = "https://restcountries.com/v3.1/alpha?codes="
+
+    public static func convertCodeToName(_ code: String, completion: @escaping (String?) -> Void) {
+        guard let url = URL(string: "\(apiUrl)\(code.lowercased())") else {
+            completion(nil)
+            return
+        }
+
+        let task = URLSession.shared.dataTask(with: url) { data, _, error in
+            guard let data = data, error == nil else {
+                completion(nil)
+                return
+            }
+
+            do {
+                let countries = try JSONDecoder().decode([Country].self, from: data)
+                let countryName = countries.first?.name?.common
+                completion(countryName)
+            } catch {
+                completion(nil)
+            }
+        }
+
+        task.resume()
+    }
+}
+
+struct Country: Decodable {
+    let name: Name?
+}
+
+struct Name: Decodable {
+    let common: String?
+}
